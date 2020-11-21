@@ -5,11 +5,9 @@
 namespace vo {
 
 // to work around static_assert(false, ...)
-template <class T>
-struct dependent_false : std::false_type {};
+template <class T> struct dependent_false : std::false_type {};
 
-template <class T>
-inline void hash_combine(std::size_t& seed, const T& value) {
+template <class T> inline void hash_combine(std::size_t &seed, const T &value) {
   // Simple hash_combine, see e.g. here:
   // https://github.com/HowardHinnant/hash_append/issues/7
   // Not sure we ever need 32bit, but here it is...
@@ -23,4 +21,4 @@ inline void hash_combine(std::size_t& seed, const T& value) {
   }
 }
 
-}  // namespace basalt
+} // namespace vo

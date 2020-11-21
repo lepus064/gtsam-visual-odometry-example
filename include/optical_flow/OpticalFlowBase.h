@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Eigen/Core>
+#include <opencv2/features2d.hpp>
 
 #include "image/image_pyr.h"
 #include "utils/common_types.h"
@@ -9,14 +10,14 @@ namespace vo {
 
 using KeypointId = uint64_t;
 class OpticalFlowBase {
- protected:
+protected:
   static constexpr int EDGE_THRESHOLD = 19;
   std::vector<Eigen::aligned_map<KeypointId, Eigen::AffineCompact2f>>
       observations;
   void detectKeypoints(
-      const Image<const uint16_t>& img_raw, KeypointsData& kd, int PATCH_SIZE,
+      const Image<const uint16_t> &img_raw, KeypointsData &kd, int PATCH_SIZE,
       int num_points_cell,
-      const Eigen::aligned_vector<Eigen::Vector2d>& current_points) {
+      const Eigen::aligned_vector<Eigen::Vector2d> &current_points) {
     kd.corners.clear();
     kd.corner_angles.clear();
     kd.corner_descriptors.clear();
@@ -33,7 +34,7 @@ class OpticalFlowBase {
     Eigen::MatrixXi cells;
     cells.setZero(img_raw.h / PATCH_SIZE + 1, img_raw.w / PATCH_SIZE + 1);
 
-    for (const Eigen::Vector2d& p : current_points) {
+    for (const Eigen::Vector2d &p : current_points) {
       if (p[0] >= x_start && p[1] >= y_start) {
         int x = (p[0] - x_start) / PATCH_SIZE;
         int y = (p[1] - y_start) / PATCH_SIZE;
@@ -53,7 +54,7 @@ class OpticalFlowBase {
         cv::Mat subImg(PATCH_SIZE, PATCH_SIZE, CV_8U);
 
         for (int y = 0; y < PATCH_SIZE; y++) {
-          uchar* sub_ptr = subImg.ptr(y);
+          uchar *sub_ptr = subImg.ptr(y);
           for (int x = 0; x < PATCH_SIZE; x++) {
             sub_ptr[x] = (sub_img_raw(x, y) >> 8);
           }
@@ -67,7 +68,7 @@ class OpticalFlowBase {
           cv::FAST(subImg, points, threshold);
 
           std::sort(points.begin(), points.end(),
-                    [](const cv::KeyPoint& a, const cv::KeyPoint& b) -> bool {
+                    [](const cv::KeyPoint &a, const cv::KeyPoint &b) -> bool {
                       return a.response > b.response;
                     });
 
@@ -124,7 +125,7 @@ class OpticalFlowBase {
     //  }
   }
 
- public:
+public:
   Eigen::MatrixXf patch_coord;
 };
-}  // namespace vo
+} // namespace vo

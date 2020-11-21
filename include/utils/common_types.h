@@ -62,28 +62,29 @@ using CamId = std::size_t;
 struct TimeCamId {
   TimeCamId() : frame_id(0), cam_id(0) {}
 
-  TimeCamId(const FrameId& frame_id, const CamId& cam_id)
+  TimeCamId(const FrameId &frame_id, const CamId &cam_id)
       : frame_id(frame_id), cam_id(cam_id) {}
 
   FrameId frame_id;
   CamId cam_id;
 };
 
-inline std::ostream& operator<<(std::ostream& os, const TimeCamId& tcid) {
+inline std::ostream &operator<<(std::ostream &os, const TimeCamId &tcid) {
   os << tcid.frame_id << "_" << tcid.cam_id;
   return os;
 }
 
-inline bool operator<(const TimeCamId& o1, const TimeCamId& o2) {
-  if (o1.frame_id == o2.frame_id) return o1.cam_id < o2.cam_id;
+inline bool operator<(const TimeCamId &o1, const TimeCamId &o2) {
+  if (o1.frame_id == o2.frame_id)
+    return o1.cam_id < o2.cam_id;
   return o1.frame_id < o2.frame_id;
 }
 
-inline bool operator==(const TimeCamId& o1, const TimeCamId& o2) {
+inline bool operator==(const TimeCamId &o1, const TimeCamId &o2) {
   return o1.frame_id == o2.frame_id && o1.cam_id == o2.cam_id;
 }
 
-inline bool operator!=(const TimeCamId& o1, const TimeCamId& o2) {
+inline bool operator!=(const TimeCamId &o1, const TimeCamId &o2) {
   return o1.frame_id != o2.frame_id || o1.cam_id != o2.cam_id;
 }
 
@@ -187,9 +188,9 @@ struct CameraCandidate {
 
   // keep track of different stages of adding a set of candidate cameras and its
   // landmarks to the map
-  bool tried = false;            //!< tried to add to map
-  bool camera_added = false;     //!< succeeded to add to map
-  bool landmarks_added = false;  //!< added new landmarks to map
+  bool tried = false;           //!< tried to add to map
+  bool camera_added = false;    //!< succeeded to add to map
+  bool landmarks_added = false; //!< added new landmarks to map
 };
 
 /// list of current candidates and some book keeping for the different stages
@@ -210,7 +211,7 @@ struct CameraCandidates {
 
   int num_cameras_added() {
     int num_added = 0;
-    for (const auto& c : cameras) {
+    for (const auto &c : cameras) {
       if (c.camera_added) {
         ++num_added;
       }
@@ -220,7 +221,7 @@ struct CameraCandidates {
 
   int num_landmarks_added() {
     int num_added = 0;
-    for (const auto& c : cameras) {
+    for (const auto &c : cameras) {
       if (c.landmarks_added) {
         ++num_added;
       }
@@ -244,12 +245,12 @@ enum OutlierFlags {
 
 /// info on a single projected landmark
 struct ProjectedLandmark {
-  Eigen::Vector2d point_measured;            //!< detected feature location
-  Eigen::Vector2d point_reprojected;         //!< landmark projected into image
-  Eigen::Vector3d point_3d_c;                //!< 3d point in camera coordinates
-  TrackId track_id = -1;                     //!< corresponding track_id
-  double reprojection_error = 0;             //!< current reprojection error
-  unsigned int outlier_flags = OutlierNone;  //!< flags for outlier
+  Eigen::Vector2d point_measured;           //!< detected feature location
+  Eigen::Vector2d point_reprojected;        //!< landmark projected into image
+  Eigen::Vector3d point_3d_c;               //!< 3d point in camera coordinates
+  TrackId track_id = -1;                    //!< corresponding track_id
+  double reprojection_error = 0;            //!< current reprojection error
+  unsigned int outlier_flags = OutlierNone; //!< flags for outlier
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
@@ -270,13 +271,12 @@ using ImageProjections = std::map<TimeCamId, ImageProjection>;
 using TrackProjections =
     std::unordered_map<TrackId, std::map<TimeCamId, ProjectedLandmarkConstPtr>>;
 
-}  // namespace basalt
+} // namespace vo
 
 namespace std {
 
-template <>
-struct hash<vo::TimeCamId> {
-  size_t operator()(const vo::TimeCamId& x) const {
+template <> struct hash<vo::TimeCamId> {
+  size_t operator()(const vo::TimeCamId &x) const {
     size_t seed = 0;
     vo::hash_combine(seed, x.frame_id);
     vo::hash_combine(seed, x.cam_id);
@@ -284,10 +284,8 @@ struct hash<vo::TimeCamId> {
   }
 };
 
-template <>
-struct hash<std::pair<vo::TimeCamId, vo::TimeCamId>> {
-  size_t operator()(
-      const std::pair<vo::TimeCamId, vo::TimeCamId>& x) const {
+template <> struct hash<std::pair<vo::TimeCamId, vo::TimeCamId>> {
+  size_t operator()(const std::pair<vo::TimeCamId, vo::TimeCamId> &x) const {
     size_t seed = 0;
     vo::hash_combine(seed, x.first.frame_id);
     vo::hash_combine(seed, x.first.cam_id);
@@ -297,4 +295,4 @@ struct hash<std::pair<vo::TimeCamId, vo::TimeCamId>> {
   }
 };
 
-}  // namespace std
+} // namespace std

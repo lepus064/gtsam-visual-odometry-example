@@ -4,12 +4,13 @@
 
 #include <thread>
 
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
+#include <sophus/se2.hpp>
+#include <sophus/se3.hpp>
 #include <tbb/blocked_range.h>
 #include <tbb/concurrent_unordered_map.h>
 #include <tbb/parallel_for.h>
-#include <opencv2/highgui.hpp>
-#include <sophus/se2.hpp>
-#include <sophus/se3.hpp>
 
 #include "image/ImageData.h"
 #include "optical_flow/OpticalFlowBase.h"
@@ -22,7 +23,7 @@ namespace vo {
 
 template <typename Scalar, template <typename> typename Pattern>
 class OpticalFlowFrameToFrame : public OpticalFlowBase {
- public:
+public:
   typedef OpticalFlowPatch<Scalar, Pattern<Scalar>> PatchT;
 
   typedef Eigen::Matrix<Scalar, 2, 1> Vector2;
@@ -37,15 +38,9 @@ class OpticalFlowFrameToFrame : public OpticalFlowBase {
   typedef Sophus::SE2<Scalar> SE2;
   typedef Sophus::SE3<Scalar> SE3;
 
-  OpticalFlowFrameToFrame(uint8_t _cam_num = 1, const SE3& _T_0_1 = SE3())
-      : t_ns(-1),
-        frame_counter(0),
-        last_keypoint_id(0),
-        cam_num(_cam_num),
-        T_0_1(_T_0_1) {
-    // input_queue.set_capacity(10);
-
-    // patch_coord = PatchT::pattern2.template cast<float>();
+  OpticalFlowFrameToFrame(uint8_t _cam_num = 1, const SE3 &_T10 = SE3())
+      : t_ns(-1), frame_counter(0), last_keypoint_id(0), cam_num(_cam_num),
+        T_1_0(_T10) {
 
     // if (calib.intrinsics.size() > 1) {
     //   Eigen::Matrix4d Ed;
@@ -55,18 +50,15 @@ class OpticalFlowFrameToFrame : public OpticalFlowBase {
 
     // const Eigen::Vector3d t_0_1 = T_0_1.translation();
     // const Eigen::Matrix3d R_0_1 = T_0_1.rotationMatrix();
-    E.template topLeftCorner<3, 3>() =
-        Sophus::SO3<Scalar>::hat(T_0_1.translation().normalized()) *
-        T_0_1.rotationMatrix();
-    // E.topLeftCorner<3, 3>() = Sophus::SO3d::hat(t_0_1.normalized()) * R_0_1;
-    // E = Ed.cast<Scalar>();
-    // }
+    E10.template topLeftCorner<3, 3>() =
+        Sophus::SO3<Scalar>::hat(T_1_0.translation().normalized()) *
+        T_1_0.rotationMatrix();
 
     // processing_thread.reset(
     //     new std::thread(&FrameToFrameOpticalFlow::processingLoop, this));
   }
 
-  void processFrame(const std::vector<cv::Mat>& imgs) {
+  void processFrame(const std::vector<cv::Mat> &imgs) {
     // cv::imshow("sss", imgs[0]);
 
     std::vector<ImageData> imgData;
@@ -76,7 +68,7 @@ class OpticalFlowFrameToFrame : public OpticalFlowBase {
       pyramid.reset(new std::vector<ManagedImagePyr<u_int16_t>>);
       pyramid->resize(cam_num);
       tbb::parallel_for(tbb::blocked_range<size_t>(0, cam_num),
-                        [&](const tbb::blocked_range<size_t>& r) {
+                        [&](const tbb::blocked_range<size_t> &r) {
                           for (size_t i = r.begin(); i != r.end(); ++i) {
                             pyramid->at(i).setFromImage(*imgData[i].img,
                                                         optical_flow_levels);
@@ -92,7 +84,7 @@ class OpticalFlowFrameToFrame : public OpticalFlowBase {
       pyramid.reset(new std::vector<vo::ManagedImagePyr<u_int16_t>>);
       pyramid->resize(cam_num);
       tbb::parallel_for(tbb::blocked_range<size_t>(0, cam_num),
-                        [&](const tbb::blocked_range<size_t>& r) {
+                        [&](const tbb::blocked_range<size_t> &r) {
                           for (size_t i = r.begin(); i != r.end(); ++i) {
                             pyramid->at(i).setFromImage(*imgData[i].img,
                                                         optical_flow_levels);
@@ -109,43 +101,45 @@ class OpticalFlowFrameToFrame : public OpticalFlowBase {
 
       observations = new_observations;
 
-#ifdef VO_DEBUG
-      cv::Mat allcamshow;
-      for (int cam = 0; cam < cam_num; cam++) {
-        cv::Mat img_show;
-        cv::cvtColor(imgs[cam], img_show, cv::COLOR_GRAY2BGR);
-        std::uniform_int_distribution<int> dis(1, 255);
-        for (const auto& ob : observations.at(cam)) {
-          std::mt19937 gen(ob.first);
-          cv::Scalar color(dis(gen), dis(gen), dis(gen));
-          cv::Point2f pt(ob.second.translation().x(),
-                         ob.second.translation().y());
-          cv::circle(img_show, pt, 3, color, -1);
-          cv::putText(img_show, std::to_string(ob.first), pt, 1, 1, color);
-        }
-        if (cam == 0) {
-          allcamshow = img_show;
-        } else {
-          cv::hconcat(allcamshow, img_show, allcamshow);
-        }
-      }
-      cv::imshow("add", allcamshow);
-#endif
-
       addPoints();
+
       // filterPoints();
     }
+#ifdef VO_DEBUG
+    cv::Mat allcamshow;
+    for (int cam = 0; cam < cam_num; cam++) {
+      cv::Mat img_show;
+      cv::cvtColor(imgs[cam], img_show, cv::COLOR_GRAY2BGR);
+      std::uniform_int_distribution<int> dis(1, 255);
+      for (const auto &ob : observations.at(cam)) {
+        std::mt19937 gen(ob.first);
+        cv::Scalar color(dis(gen), dis(gen), dis(gen));
+        cv::Point2f pt(ob.second.translation().x(),
+                       ob.second.translation().y());
+        cv::circle(img_show, pt, 3, color, -1);
+        cv::putText(img_show, std::to_string(ob.first), pt, 1, 1, color);
+      }
+      if (cam == 0) {
+        allcamshow = img_show;
+      } else {
+        // cv::hconcat(allcamshow, img_show, allcamshow);
+        cv::vconcat(allcamshow, img_show, allcamshow);
+      }
+    }
+    cv::imshow("add", allcamshow);
+    cv::waitKey(0);
+#endif
 
     frame_counter++;
     // return allcamshow;
   }
 
-  void trackPoints(const vo::ManagedImagePyr<u_int16_t>& pyr_1,
-                   const vo::ManagedImagePyr<u_int16_t>& pyr_2,
-                   const Eigen::aligned_map<KeypointId, Eigen::AffineCompact2f>&
-                       transform_map_1,
-                   Eigen::aligned_map<KeypointId, Eigen::AffineCompact2f>&
-                       transform_map_2) const {
+  void trackPoints(const vo::ManagedImagePyr<u_int16_t> &pyr_1,
+                   const vo::ManagedImagePyr<u_int16_t> &pyr_2,
+                   const Eigen::aligned_map<KeypointId, Eigen::AffineCompact2f>
+                       &transform_map_1,
+                   Eigen::aligned_map<KeypointId, Eigen::AffineCompact2f>
+                       &transform_map_2) const {
     size_t num_points = transform_map_1.size();
 
     std::vector<KeypointId> ids;
@@ -154,7 +148,7 @@ class OpticalFlowFrameToFrame : public OpticalFlowBase {
     ids.reserve(num_points);
     init_vec.reserve(num_points);
 
-    for (const auto& kv : transform_map_1) {
+    for (const auto &kv : transform_map_1) {
       ids.push_back(kv.first);
       init_vec.push_back(kv.second);
     }
@@ -163,11 +157,11 @@ class OpticalFlowFrameToFrame : public OpticalFlowBase {
                                   std::hash<KeypointId>>
         result;
 
-    auto compute_func = [&](const tbb::blocked_range<size_t>& range) {
+    auto compute_func = [&](const tbb::blocked_range<size_t> &range) {
       for (size_t r = range.begin(); r != range.end(); ++r) {
         const KeypointId id = ids[r];
 
-        const Eigen::AffineCompact2f& transform_1 = init_vec[r];
+        const Eigen::AffineCompact2f &transform_1 = init_vec[r];
         Eigen::AffineCompact2f transform_2 = transform_1;
 
         bool valid = trackPoint(pyr_1, pyr_2, transform_1, transform_2);
@@ -199,10 +193,10 @@ class OpticalFlowFrameToFrame : public OpticalFlowBase {
     transform_map_2.insert(result.begin(), result.end());
   }
 
-  inline bool trackPoint(const vo::ManagedImagePyr<uint16_t>& old_pyr,
-                         const vo::ManagedImagePyr<uint16_t>& pyr,
-                         const Eigen::AffineCompact2f& old_transform,
-                         Eigen::AffineCompact2f& transform) const {
+  inline bool trackPoint(const vo::ManagedImagePyr<uint16_t> &old_pyr,
+                         const vo::ManagedImagePyr<uint16_t> &pyr,
+                         const Eigen::AffineCompact2f &old_transform,
+                         Eigen::AffineCompact2f &transform) const {
     bool patch_valid = true;
 
     transform.linear().setIdentity();
@@ -225,9 +219,9 @@ class OpticalFlowFrameToFrame : public OpticalFlowBase {
     return patch_valid;
   }
 
-  inline bool trackPointAtLevel(const Image<const u_int16_t>& img_2,
-                                const PatchT& dp,
-                                Eigen::AffineCompact2f& transform) const {
+  inline bool trackPointAtLevel(const Image<const u_int16_t> &img_2,
+                                const PatchT &dp,
+                                Eigen::AffineCompact2f &transform) const {
     bool patch_valid = true;
 
     for (int iteration = 0;
@@ -258,7 +252,7 @@ class OpticalFlowFrameToFrame : public OpticalFlowBase {
   void addPoints() {
     Eigen::aligned_vector<Eigen::Vector2d> pts0;
 
-    for (const auto& kv : observations.at(0)) {
+    for (const auto &kv : observations.at(0)) {
       pts0.emplace_back(kv.second.translation().template cast<double>());
     }
 
@@ -274,8 +268,9 @@ class OpticalFlowFrameToFrame : public OpticalFlowBase {
       Eigen::AffineCompact2f transform;
       transform.setIdentity();
       transform.translation() = kd.corners[i].cast<Scalar>();
-
-      observations.at(0)[last_keypoint_id] = transform;
+      if (cam_num < 2) {
+        observations.at(0)[last_keypoint_id] = transform;
+      }
       new_poses0[last_keypoint_id] = transform;
 
       last_keypoint_id++;
@@ -284,7 +279,8 @@ class OpticalFlowFrameToFrame : public OpticalFlowBase {
     if (cam_num > 1) {
       trackPoints(pyramid->at(0), pyramid->at(1), new_poses0, new_poses1);
 
-      for (const auto& kv : new_poses1) {
+      for (const auto &kv : new_poses1) {
+        observations.at(0)[kv.first] = new_poses0.at(kv.first);
         observations.at(1).emplace(kv);
       }
     }
@@ -331,13 +327,17 @@ class OpticalFlowFrameToFrame : public OpticalFlowBase {
   //     observations.at(1).erase(id);
   //   }
   // }
+  void projectBetweenCam(
+      float depth,
+      const Eigen::aligned_map<KeypointId, Eigen::AffineCompact2f> &new_poses0,
+      Eigen::aligned_map<KeypointId, Eigen::AffineCompact2f> &new_poses1) {}
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
- private:
+private:
   static constexpr uint8_t optical_flow_detection_grid_size = 50;
   static constexpr float optical_flow_max_recovered_dist2 = 0.04;
   static constexpr uint8_t optical_flow_max_iterations = 5;
-  static constexpr uint8_t optical_flow_levels = 3;
+  static constexpr uint8_t optical_flow_levels = 4;
   static constexpr float optical_flow_epipolar_error = 0.005;
   int64_t t_ns;
 
@@ -347,16 +347,17 @@ class OpticalFlowFrameToFrame : public OpticalFlowBase {
 
   bool initialized = false;
 
-  const SE3 T_0_1;
+  SE3 T_1_0;
+  // const Matrix3 intrinsic;
 
-  const uint8_t cam_num;
+  uint8_t cam_num;
 
   //[cam][point id]
   // OpticalFlowResult::Ptr transforms;
   std::shared_ptr<std::vector<ManagedImagePyr<u_int16_t>>> old_pyramid, pyramid;
 
-  Matrix4 E;
+  Matrix4 E10;
 
   std::shared_ptr<std::thread> processing_thread;
 };
-}  // namespace vo
+} // namespace vo

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <iostream>
 #include <memory>
 #include <mutex>
@@ -7,7 +8,6 @@
 #include <string>
 #include <thread>
 #include <vector>
-#include <cstdint>
 
 #include <opencv2/core.hpp>
 
@@ -30,7 +30,8 @@ protected:
   std::queue<std::shared_ptr<std::vector<cv::Mat>>> frameBuffer;
 
 public:
-  DatasetManager(const uint8_t &cam_num, const std::vector<std::string> &cam_data_pattern);
+  DatasetManager(const uint8_t &cam_num,
+                 const std::vector<std::string> &cam_data_pattern);
   std::shared_ptr<std::vector<cv::Mat>> get();
   void reset();
   void stop();

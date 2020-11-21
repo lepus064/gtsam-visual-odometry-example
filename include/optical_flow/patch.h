@@ -41,8 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace vo {
 
-template <typename Scalar, typename Pattern>
-struct OpticalFlowPatch {
+template <typename Scalar, typename Pattern> struct OpticalFlowPatch {
   static constexpr int PATTERN_SIZE = Pattern::PATTERN_SIZE;
 
   typedef Eigen::Matrix<int, 2, 1> Vector2i;
@@ -163,7 +162,7 @@ struct OpticalFlowPatch {
   }
 
   Vector2 pos;
-  VectorP data;  // negative if the point is not valid
+  VectorP data; // negative if the point is not valid
 
   // MatrixP3 J_se2;  // total jacobian with respect to se2 warp
   // Matrix3 H_se2_inv;
@@ -176,4 +175,4 @@ template <typename Scalar, typename Pattern>
 const typename OpticalFlowPatch<Scalar, Pattern>::Matrix2P
     OpticalFlowPatch<Scalar, Pattern>::pattern2 = Pattern::pattern2;
 
-}  // namespace vo
+} // namespace vo

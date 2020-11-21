@@ -48,7 +48,7 @@ json load_config(std::string config_path) {
 // }
 
 vector<double> load_calib(const nlohmann::json &config) {
-    string calib_path = config["data_path"].get<string>() + "/sequences/" +
+    string calib_path = config["data_path"].get<string>() + "/" +
                         config["seq"].get<string>() + "/" + "calib.txt";
     ifstream calib_data(calib_path);
     string out;

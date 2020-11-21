@@ -1,8 +1,8 @@
 #pragma once
+#include "image/image_pyr.h"
 #include <opencv2/core.hpp>
 #include <string>
 #include <vector>
-#include "image/image_pyr.h"
 
 namespace vo {
 struct ImageData {
@@ -52,4 +52,4 @@ inline void MatToImageData(const std::vector<cv::Mat> &imgs,
   }
 }
 
-}  // namespace vo
+} // namespace vo

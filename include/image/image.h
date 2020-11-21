@@ -74,14 +74,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace vo {
 
 /// @brief Helper class for copying objects.
-template <typename T>
-struct CopyObject {
-  CopyObject(const T& obj) : obj(obj) {}
-  const T& obj;
+template <typename T> struct CopyObject {
+  CopyObject(const T &obj) : obj(obj) {}
+  const T &obj;
 };
 
-inline void PitchedCopy(char* dst, unsigned int dst_pitch_bytes,
-                        const char* src, unsigned int src_pitch_bytes,
+inline void PitchedCopy(char *dst, unsigned int dst_pitch_bytes,
+                        const char *src, unsigned int src_pitch_bytes,
                         unsigned int width_bytes, unsigned int height) {
   if (dst_pitch_bytes == width_bytes && src_pitch_bytes == width_bytes) {
     std::memcpy(dst, src, height * width_bytes);
@@ -95,13 +94,12 @@ inline void PitchedCopy(char* dst, unsigned int dst_pitch_bytes,
 }
 
 /// @brief Image class that supports sub-images, interpolation, element access.
-template <typename T>
-struct Image {
+template <typename T> struct Image {
   using PixelType = T;
 
   inline Image() : pitch(0), ptr(0), w(0), h(0) {}
 
-  inline Image(T* ptr, size_t w, size_t h, size_t pitch)
+  inline Image(T *ptr, size_t w, size_t h, size_t pitch)
       : pitch(pitch), ptr(ptr), w(w), h(h) {}
 
   inline size_t SizeBytes() const { return pitch * h; }
@@ -116,13 +114,13 @@ struct Image {
   // Iterators
   //////////////////////////////////////////////////////
 
-  inline T* begin() { return ptr; }
+  inline T *begin() { return ptr; }
 
-  inline T* end() { return RowPtr(h - 1) + w; }
+  inline T *end() { return RowPtr(h - 1) + w; }
 
-  inline const T* begin() const { return ptr; }
+  inline const T *begin() const { return ptr; }
 
-  inline const T* end() const { return RowPtr(h - 1) + w; }
+  inline const T *end() const { return RowPtr(h - 1) + w; }
 
   inline size_t size() const { return w * h; }
 
@@ -133,35 +131,35 @@ struct Image {
   template <typename UnaryOperation>
   inline void Transform(UnaryOperation unary_op) {
     for (size_t y = 0; y < h; ++y) {
-      T* el = RowPtr(y);
-      const T* el_end = el + w;
+      T *el = RowPtr(y);
+      const T *el_end = el + w;
       for (; el != el_end; ++el) {
         *el = unary_op(*el);
       }
     }
   }
 
-  inline void Fill(const T& val) {
-    Transform([&](const T&) { return val; });
+  inline void Fill(const T &val) {
+    Transform([&](const T &) { return val; });
   }
 
-  inline void Replace(const T& oldval, const T& newval) {
-    Transform([&](const T& val) { return (val == oldval) ? newval : val; });
+  inline void Replace(const T &oldval, const T &newval) {
+    Transform([&](const T &val) { return (val == oldval) ? newval : val; });
   }
 
   inline void Memset(unsigned char v = 0) {
     if (IsContiguous()) {
-      std::memset((char*)ptr, v, pitch * h);
+      std::memset((char *)ptr, v, pitch * h);
     } else {
       for (size_t y = 0; y < h; ++y) {
-        std::memset((char*)RowPtr(y), v, pitch);
+        std::memset((char *)RowPtr(y), v, pitch);
       }
     }
   }
 
-  inline void CopyFrom(const Image<T>& img) {
+  inline void CopyFrom(const Image<T> &img) {
     if (IsValid() && img.IsValid()) {
-      PitchedCopy((char*)ptr, pitch, (char*)img.ptr, img.pitch,
+      PitchedCopy((char *)ptr, pitch, (char *)img.ptr, img.pitch,
                   std::min(img.w, w) * sizeof(T), std::min(img.h, h));
     } else if (img.IsValid() != IsValid()) {
     }
@@ -175,8 +173,8 @@ struct Image {
   inline T Accumulate(const T init, BinaryOperation binary_op) {
     T val = init;
     for (size_t y = 0; y < h; ++y) {
-      T* el = RowPtr(y);
-      const T* el_end = el + w;
+      T *el = RowPtr(y);
+      const T *el_end = el + w;
       for (; el != el_end; ++el) {
         val = binary_op(val, *el);
       }
@@ -188,8 +186,8 @@ struct Image {
     std::pair<T, T> minmax(std::numeric_limits<T>::max(),
                            std::numeric_limits<T>::lowest());
     for (size_t r = 0; r < h; ++r) {
-      const T* ptr = RowPtr(r);
-      const T* end = ptr + w;
+      const T *ptr = RowPtr(r);
+      const T *end = ptr + w;
       while (ptr != end) {
         minmax.first = std::min(*ptr, minmax.first);
         minmax.second = std::max(*ptr, minmax.second);
@@ -199,14 +197,12 @@ struct Image {
     return minmax;
   }
 
-  template <typename Tout = T>
-  Tout Sum() const {
+  template <typename Tout = T> Tout Sum() const {
     return Accumulate((T)0,
-                      [](const T& lhs, const T& rhs) { return lhs + rhs; });
+                      [](const T &lhs, const T &rhs) { return lhs + rhs; });
   }
 
-  template <typename Tout = T>
-  Tout Mean() const {
+  template <typename Tout = T> Tout Mean() const {
     return Sum<Tout>() / Area();
   }
 
@@ -214,47 +210,45 @@ struct Image {
   // Direct Pixel Access
   //////////////////////////////////////////////////////
 
-  inline T* RowPtr(size_t y) { return (T*)((unsigned char*)(ptr) + y * pitch); }
-
-  inline const T* RowPtr(size_t y) const {
-    return (T*)((unsigned char*)(ptr) + y * pitch);
+  inline T *RowPtr(size_t y) {
+    return (T *)((unsigned char *)(ptr) + y * pitch);
   }
 
-  inline T& operator()(size_t x, size_t y) { return RowPtr(y)[x]; }
+  inline const T *RowPtr(size_t y) const {
+    return (T *)((unsigned char *)(ptr) + y * pitch);
+  }
 
-  inline const T& operator()(size_t x, size_t y) const { return RowPtr(y)[x]; }
+  inline T &operator()(size_t x, size_t y) { return RowPtr(y)[x]; }
 
-  template <typename TVec>
-  inline T& operator()(const TVec& p) {
+  inline const T &operator()(size_t x, size_t y) const { return RowPtr(y)[x]; }
+
+  template <typename TVec> inline T &operator()(const TVec &p) {
     return RowPtr(p[1])[p[0]];
   }
 
-  template <typename TVec>
-  inline const T& operator()(const TVec& p) const {
+  template <typename TVec> inline const T &operator()(const TVec &p) const {
     return RowPtr(p[1])[p[0]];
   }
 
-  inline T& operator[](size_t ix) { return ptr[ix]; }
+  inline T &operator[](size_t ix) { return ptr[ix]; }
 
-  inline const T& operator[](size_t ix) const { return ptr[ix]; }
+  inline const T &operator[](size_t ix) const { return ptr[ix]; }
 
   //////////////////////////////////////////////////////
   // Interpolated Pixel Access
   //////////////////////////////////////////////////////
 
-  template <typename S>
-  inline S interp(const Eigen::Matrix<S, 2, 1>& p) const {
+  template <typename S> inline S interp(const Eigen::Matrix<S, 2, 1> &p) const {
     return interp<S>(p[0], p[1]);
   }
 
   template <typename S>
-  inline Eigen::Matrix<S, 3, 1> interpGrad(
-      const Eigen::Matrix<S, 2, 1>& p) const {
+  inline Eigen::Matrix<S, 3, 1>
+  interpGrad(const Eigen::Matrix<S, 2, 1> &p) const {
     return interpGrad<S>(p[0], p[1]);
   }
 
-  template <typename S>
-  inline S interp(S x, S y) const {
+  template <typename S> inline S interp(S x, S y) const {
     static_assert(std::is_floating_point_v<S>,
                   "interpolation / gradient only makes sense "
                   "for floating point result type");
@@ -289,36 +283,36 @@ struct Image {
 
     Eigen::Matrix<S, 3, 1> res;
 
-    const T& px0y0 = (*this)(ix, iy);
-    const T& px1y0 = (*this)(ix + 1, iy);
-    const T& px0y1 = (*this)(ix, iy + 1);
-    const T& px1y1 = (*this)(ix + 1, iy + 1);
+    const T &px0y0 = (*this)(ix, iy);
+    const T &px1y0 = (*this)(ix + 1, iy);
+    const T &px0y1 = (*this)(ix, iy + 1);
+    const T &px1y1 = (*this)(ix + 1, iy + 1);
 
     res[0] = ddx * ddy * px0y0 + ddx * dy * px0y1 + dx * ddy * px1y0 +
              dx * dy * px1y1;
 
-    const T& pxm1y0 = (*this)(ix - 1, iy);
-    const T& pxm1y1 = (*this)(ix - 1, iy + 1);
+    const T &pxm1y0 = (*this)(ix - 1, iy);
+    const T &pxm1y1 = (*this)(ix - 1, iy + 1);
 
     S res_mx = ddx * ddy * pxm1y0 + ddx * dy * pxm1y1 + dx * ddy * px0y0 +
                dx * dy * px0y1;
 
-    const T& px2y0 = (*this)(ix + 2, iy);
-    const T& px2y1 = (*this)(ix + 2, iy + 1);
+    const T &px2y0 = (*this)(ix + 2, iy);
+    const T &px2y1 = (*this)(ix + 2, iy + 1);
 
     S res_px = ddx * ddy * px1y0 + ddx * dy * px1y1 + dx * ddy * px2y0 +
                dx * dy * px2y1;
 
     res[1] = S(0.5) * (res_px - res_mx);
 
-    const T& px0ym1 = (*this)(ix, iy - 1);
-    const T& px1ym1 = (*this)(ix + 1, iy - 1);
+    const T &px0ym1 = (*this)(ix, iy - 1);
+    const T &px1ym1 = (*this)(ix + 1, iy - 1);
 
     S res_my = ddx * ddy * px0ym1 + ddx * dy * px0y0 + dx * ddy * px1ym1 +
                dx * dy * px1y0;
 
-    const T& px0y2 = (*this)(ix, iy + 2);
-    const T& px1y2 = (*this)(ix + 1, iy + 2);
+    const T &px0y2 = (*this)(ix, iy + 2);
+    const T &px1y2 = (*this)(ix + 1, iy + 2);
 
     S res_py = ddx * ddy * px0y1 + ddx * dy * px0y2 + dx * ddy * px1y1 +
                dx * dy * px1y2;
@@ -332,7 +326,7 @@ struct Image {
   // Bounds Checking
   //////////////////////////////////////////////////////
 
-  bool InImage(const T* ptest) const {
+  bool InImage(const T *ptest) const {
     return ptr <= ptest && ptest < RowPtr(h);
   }
 
@@ -346,7 +340,7 @@ struct Image {
   }
 
   template <typename Derived>
-  inline bool InBounds(const Eigen::MatrixBase<Derived>& p,
+  inline bool InBounds(const Eigen::MatrixBase<Derived> &p,
                        const typename Derived::Scalar border) const {
     using Scalar = typename Derived::Scalar;
 
@@ -380,14 +374,12 @@ struct Image {
   // Data mangling
   //////////////////////////////////////////////////////
 
-  template <typename TRecast>
-  inline Image<TRecast> Reinterpret() const {
+  template <typename TRecast> inline Image<TRecast> Reinterpret() const {
     return UnsafeReinterpret<TRecast>();
   }
 
-  template <typename TRecast>
-  inline Image<TRecast> UnsafeReinterpret() const {
-    return Image<TRecast>((TRecast*)ptr, w, h, pitch);
+  template <typename TRecast> inline Image<TRecast> UnsafeReinterpret() const {
+    return Image<TRecast>((TRecast *)ptr, w, h, pitch);
   }
 
   //////////////////////////////////////////////////////
@@ -395,7 +387,7 @@ struct Image {
   //////////////////////////////////////////////////////
 
   //    PANGOLIN_DEPRECATED inline
-  Image(size_t w, size_t h, size_t pitch, T* ptr)
+  Image(size_t w, size_t h, size_t pitch, T *ptr)
       : pitch(pitch), ptr(ptr), w(w), h(h) {}
 
   // Use RAII/move aware pangolin::ManagedImage instead
@@ -414,7 +406,7 @@ struct Image {
     this->w = w;
     this->h = h;
     this->pitch = pitch;
-    this->ptr = (T*)::operator new(h* pitch);
+    this->ptr = (T *)::operator new(h *pitch);
   }
 
   //////////////////////////////////////////////////////
@@ -422,19 +414,18 @@ struct Image {
   //////////////////////////////////////////////////////
 
   size_t pitch;
-  T* ptr;
+  T *ptr;
   size_t w;
   size_t h;
 };
 
-template <class T>
-using DefaultImageAllocator = std::allocator<T>;
+template <class T> using DefaultImageAllocator = std::allocator<T>;
 
 /// @brief Image that manages it's own memory, storing a strong pointer to it's
 /// memory
 template <typename T, class Allocator = DefaultImageAllocator<T>>
 class ManagedImage : public Image<T> {
- public:
+public:
   using PixelType = T;
   using Ptr = std::shared_ptr<ManagedImage<T, Allocator>>;
 
@@ -456,15 +447,15 @@ class ManagedImage : public Image<T> {
                  pitch_bytes) {}
 
   // Not copy constructable
-  inline ManagedImage(const ManagedImage<T>& other) = delete;
+  inline ManagedImage(const ManagedImage<T> &other) = delete;
 
   // Move constructor
-  inline ManagedImage(ManagedImage<T, Allocator>&& img) {
+  inline ManagedImage(ManagedImage<T, Allocator> &&img) {
     *this = std::move(img);
   }
 
   // Move asignment
-  inline void operator=(ManagedImage<T, Allocator>&& img) {
+  inline void operator=(ManagedImage<T, Allocator> &&img) {
     Deallocate();
     Image<T>::pitch = img.pitch;
     Image<T>::ptr = img.ptr;
@@ -474,25 +465,23 @@ class ManagedImage : public Image<T> {
   }
 
   // Explicit copy constructor
-  template <typename TOther>
-  ManagedImage(const CopyObject<TOther>& other) {
+  template <typename TOther> ManagedImage(const CopyObject<TOther> &other) {
     CopyFrom(other.obj);
   }
 
   // Explicit copy assignment
-  template <typename TOther>
-  void operator=(const CopyObject<TOther>& other) {
+  template <typename TOther> void operator=(const CopyObject<TOther> &other) {
     CopyFrom(other.obj);
   }
 
-  inline void Swap(ManagedImage<T>& img) {
+  inline void Swap(ManagedImage<T> &img) {
     std::swap(img.pitch, Image<T>::pitch);
     std::swap(img.ptr, Image<T>::ptr);
     std::swap(img.w, Image<T>::w);
     std::swap(img.h, Image<T>::h);
   }
 
-  inline void CopyFrom(const Image<T>& img) {
+  inline void CopyFrom(const Image<T> &img) {
     if (!Image<T>::IsValid() || Image<T>::w != img.w || Image<T>::h != img.h) {
       Reinitialise(img.w, img.h);
     }
@@ -522,32 +511,31 @@ class ManagedImage : public Image<T> {
 
   // Move asignment
   template <typename TOther, typename AllocOther>
-  inline void OwnAndReinterpret(ManagedImage<TOther, AllocOther>&& img) {
+  inline void OwnAndReinterpret(ManagedImage<TOther, AllocOther> &&img) {
     Deallocate();
     Image<T>::pitch = img.pitch;
-    Image<T>::ptr = (T*)img.ptr;
+    Image<T>::ptr = (T *)img.ptr;
     Image<T>::w = img.w;
     Image<T>::h = img.h;
     img.ptr = nullptr;
   }
 
-  template <typename T1>
-  inline void ConvertFrom(const ManagedImage<T1>& img) {
+  template <typename T1> inline void ConvertFrom(const ManagedImage<T1> &img) {
     Reinitialise(img.w, img.h);
 
     for (size_t j = 0; j < img.h; j++) {
-      T* this_row = this->RowPtr(j);
-      const T1* other_row = img.RowPtr(j);
+      T *this_row = this->RowPtr(j);
+      const T1 *other_row = img.RowPtr(j);
       for (size_t i = 0; i < img.w; i++) {
         this_row[i] = T(other_row[i]);
       }
     }
   }
 
-  inline void operator-=(const ManagedImage<T>& img) {
+  inline void operator-=(const ManagedImage<T> &img) {
     for (size_t j = 0; j < img.h; j++) {
-      T* this_row = this->RowPtr(j);
-      const T* other_row = img.RowPtr(j);
+      T *this_row = this->RowPtr(j);
+      const T *other_row = img.RowPtr(j);
       for (size_t i = 0; i < img.w; i++) {
         this_row[i] -= other_row[i];
       }
@@ -555,4 +543,4 @@ class ManagedImage : public Image<T> {
   }
 };
 
-}  // namespace vo
+} // namespace vo
